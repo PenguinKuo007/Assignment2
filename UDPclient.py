@@ -1,6 +1,13 @@
 import socket
 import sys
 
+# Global variable
+y = 50 # packet size
+n = 3 # window size
+s = n * 2 + 1 # total number of sequence number
+current = 0 # trace the current sequence number
+packet = list(range(s)) # initialize a list of size s for packet
+
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -9,14 +16,20 @@ message = b'This is the message.  It will be repeated.'
 
 try:
 
-    # Send data
-    print('sending {!r}'.format(message))
-    sent = sock.sendto(message, server_address)
+    file = open('client_data/test1.txt' , "rb")
+    body = file.read()
+    size = len(body)
+    
+    
 
-    # Receive response
-    print('waiting to receive')
-    data, server = sock.recvfrom(4096)
-    print('received {!r}'.format(data))
+    sent = sock.sendto(b'test1.txt', server_address)
+    data,server = sock.recvfrom(y)
+    print(data)
+
+
+
+
+
 
 finally:
     print('closing socket')
