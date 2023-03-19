@@ -33,6 +33,7 @@ while True:
 
         data, address = sock.recvfrom(y)
         loss = random.randint(1, 10)
+
         if loss >= 5:
             filename = data.decode('utf-8')
             print(filename)
@@ -44,42 +45,45 @@ while True:
             seq_base += 1
             seq_end += 1
     else:
+
         data, address = sock.recvfrom(y)
-        # print(data)
-        loss = random.randint(1, 10)
-        if loss >= 5:
-            seq = data[0:2].decode('utf-8')
-            seq = int(seq)
-            seq_str = str(seq)
+        if data.decode('utf-8') == 'Finished':
+            filename_get = False
+            file.close
+        else:
+            loss = random.randint(1, 10)
 
-            ack = seq_str.encode('utf-8')
+            if loss >= 5:
+                seq = data[0:2].decode('utf-8')
+                seq = int(seq)
+                seq_str = str(seq)
 
-            body = data[2:]
-            if seq != seq_base:
-                buffer[seq] = body
-                buf_check[seq] = True
+                ack = seq_str.encode('utf-8')
 
-            else:
+                body = data[2:]
+                if seq != seq_base:
+                    buffer[seq] = body
+                    buf_check[seq] = True
 
-                buffer[seq] = body
-                temp_end = seq_end
-                buf_check[seq] = True
-                while (seq_base != temp_end) and buf_check[seq_base]:
-                    file.write(buffer[seq_base])
-                    buf_check[seq_base] = False
-                    if seq_base == s - 1:
-                        seq_base = 0
-                    else:
-                        seq_base += 1
-                    if seq_end == s - 1:
-                        seq_end = 0
-                    else:
-                        seq_end += 1
+                else:
 
-            print(ack)
-            sock.sendto(ack, address)
+                    buffer[seq] = body
+                    temp_end = seq_end
+                    buf_check[seq] = True
+                    while (seq_base != temp_end) and buf_check[seq_base]:
+                        file.write(buffer[seq_base])
+                        buf_check[seq_base] = False
+                        if seq_base == s - 1:
+                            seq_base = 0
+                        else:
+                            seq_base += 1
+                        if seq_end == s - 1:
+                            seq_end = 0
+                        else:
+                            seq_end += 1
 
-        # else:
-        # print('packet lost!')
+                print(ack)
+                sock.sendto(ack, address)
 
-# TODO: after receiving all the packets, close the file, and set filename_get to false
+
+

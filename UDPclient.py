@@ -38,7 +38,7 @@ def send_filename(test):
         send_filename(test)
 
 
-def send_packet(data_now, seq_base, seq_end):
+def send_packet(data_now, seq_base, seq_end, finish):
     current = seq_base
 
     while current != seq_end:
@@ -54,6 +54,8 @@ def send_packet(data_now, seq_base, seq_end):
             create_list[current] = True
 
             data_now += 1
+        if data_now == len(data_list) and not finish:
+            seq_end = current + 1
         if not ack_list[current]:
             sock.sendto(packet_list[current], server_address)
 
@@ -63,12 +65,12 @@ def send_packet(data_now, seq_base, seq_end):
             current += 1
 
     if data_now == len(data_list):
-        receive_data(data_now, seq_base, seq_end, True, current - 1)
+        receive_data(data_now, seq_base, seq_end, True)
     else:
-        receive_data(data_now, seq_base, seq_end, False, 0)
+        receive_data(data_now, seq_base, seq_end, False)
 
 
-def receive_data(data_now, seq_base, seq_end, finish, last_seq):
+def receive_data(data_now, seq_base, seq_end, finish):
     try:
 
         data, server = sock.recvfrom(y)
@@ -76,39 +78,35 @@ def receive_data(data_now, seq_base, seq_end, finish, last_seq):
         data = data.decode('utf-8')
         ack = int(data)
         ack_list[ack] = True
+        if ack == seq_base and finish and seq_base == seq_end - 1:
+            print(seq_end)
+            pass
+        else:
+            if ack == seq_base:
 
-        if ack == seq_base:
+                while ack_list[seq_base]:
 
-            while ack_list[seq_base]:
+                    ack_list[seq_base] = False
+                    create_list[seq_base] = False
 
-                ack_list[seq_base] = False
-                create_list[seq_base] = False
-
-                if seq_base == s - 1:
-                    seq_base = 0
-                else:
-                    seq_base += 1
-
-                if data_now != len(data_list):
-                    if seq_end == s - 1:
-                        seq_end = 0
+                    if seq_base == s - 1:
+                        seq_base = 0
                     else:
-                        seq_end += 1
-        receive_data(data_now, seq_base, seq_end, finish, last_seq)
+                        seq_base += 1
+
+                    if not finish:
+                        if seq_end == s - 1:
+                            seq_end = 0
+                        else:
+                            seq_end += 1
+            receive_data(data_now, seq_base, seq_end, finish)
 
 
     except:
 
-        print(finish)
-        print(last_seq)
-        print(seq_base)
-        if seq_base == last_seq and finish:
-            print('closing socket')
-            sock.close()
-
         # here is the problem
         if not ack_list[seq_base]:
-            send_packet(data_now, seq_base, seq_end)
+            send_packet(data_now, seq_base, seq_end, finish)
 
 
 # Create a UDP socket
@@ -138,17 +136,12 @@ try:
     seq_base += 1
     seq_end += 1
     print(len(data_list))
-    data_now = send_packet(data_now, seq_base, seq_end)
-
-    # maybe send_packet call receive_data at the end and receive_data all send_packet for the next packet?
-
-    for i in range(1, n + 1):
-        print(ack_list[i])
-
+    data_now = send_packet(data_now, seq_base, seq_end, False)
 
 
 
 
 finally:
     print('closing socket')
+    sock.sendto(b'Finished', server_address)
     sock.close()
