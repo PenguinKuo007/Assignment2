@@ -26,6 +26,7 @@ total_packets = 0
 total_bytes = 0
 effective_bytes = 0
 timer_list = list(range(s))
+last_seq = -1
 
 for i in range(s):
     ack_list[i] = False
@@ -52,7 +53,7 @@ def send_filename():
         send_filename()
 
 
-def send_packet(data_now, seq_base, seq_end, finish):
+def send_packet(data_now, seq_base, seq_end, finish, last_seq):
     global total_packets, effective_bytes, total_bytes
     current = seq_base
 
@@ -69,6 +70,8 @@ def send_packet(data_now, seq_base, seq_end, finish):
             create_list[current] = True
 
             data_now += 1
+            if data_now == len(data_list):
+                last_seq = current
         if data_now == len(data_list) and not finish:
             seq_end = current + 1
         if not ack_list[current]:
@@ -85,12 +88,12 @@ def send_packet(data_now, seq_base, seq_end, finish):
             current += 1
 
     if data_now == len(data_list):
-        receive_data(data_now, seq_base, seq_end, True)
+        receive_data(data_now, seq_base, seq_end, True, last_seq)
     else:
-        receive_data(data_now, seq_base, seq_end, False)
+        receive_data(data_now, seq_base, seq_end, False, last_seq)
 
 
-def receive_data(data_now, seq_base, seq_end, finish):
+def receive_data(data_now, seq_base, seq_end, finish, last_seq):
     global max_rtt, min_rtt, total_rtt, rtt_count, lost_packets, effective_bytes
     try:
         data, server = sock.recvfrom(y)
@@ -113,7 +116,7 @@ def receive_data(data_now, seq_base, seq_end, finish):
         total_rtt = total_rtt + rtt
         rtt_count = rtt_count + 1
         
-        if ack == seq_base and finish and seq_base == seq_end - 1:
+        if ack == seq_base and finish and seq_base == last_seq:
             # print(seq_end)
             pass
         else:
@@ -133,7 +136,7 @@ def receive_data(data_now, seq_base, seq_end, finish):
                             seq_end = 0
                         else:
                             seq_end += 1
-            receive_data(data_now, seq_base, seq_end, finish)
+            receive_data(data_now, seq_base, seq_end, finish, last_seq)
 
 
     except Exception as e:
@@ -143,7 +146,7 @@ def receive_data(data_now, seq_base, seq_end, finish):
         lost_packets = lost_packets + 1
         effective_bytes = effective_bytes - len(packet_list[seq_base])
         if not ack_list[seq_base]:
-            send_packet(data_now, seq_base, seq_end, finish)
+            send_packet(data_now, seq_base, seq_end, finish, last_seq)
 
 log = open('client_data/client_log', "wb")
 
@@ -173,7 +176,7 @@ try:
     seq_base += 1
     seq_end += 1
     # print(len(data_list))
-    data_now = send_packet(data_now, seq_base, seq_end, False)
+    send_packet(data_now, seq_base, seq_end, False, last_seq)
 
 
 
