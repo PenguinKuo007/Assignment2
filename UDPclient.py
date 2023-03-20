@@ -4,41 +4,56 @@ import time
 import random
 
 # Global variable
+hostname = 'localhost'
+filename = 'test2.txt'
 y = 50  # packet size
 n = 3  # window size
 s = n * 2 + 1  # total number of sequence number
 seq = 0  # trace the current sequence number
-packet_list = list(range(s))  # initialize an empty list of for packet
+packet_list = ['']*s  # initialize an empty list of for packet
 ack_list = list(range(s))  # list for tracking current ack
 timeout = 3  # timeout value
-test = 0
 data_list = []
 create_list = list(range(s))
 start_timer = 0
 end_timer = 0
+max_rtt = 0
+min_rtt = 2**31 -1 
+rtt_count = 0
+total_rtt = 0
+lost_packets = 0
+total_packets = 0
+total_bytes = 0
+effective_bytes = 0
+timer_list = list(range(s))
 
 for i in range(s):
-    create_list[i] = False
-for i in range(s):
     ack_list[i] = False
+    create_list[i] = False
+    timer_list[i] = 0
 
 
 # helper function to send filename to server
-def send_filename(test):
+def send_filename():
     try:
-        packet_list.append('test1.txt')
-        sock.sendto(b'test1.txt', server_address)
+        packet_list.append(filename)
+        sock.sendto(filename.encode('utf-8'), server_address)
+        log.write(b'Sender: sent file ' + filename.encode('utf-8') + b'\n')
+        log.write(b'Sender: sent PKT0 \n')
+        print("Filename successfully sent \n")
+
         data, server = sock.recvfrom(y)
+        recieved = time.time()
+        log.write(b'Sender: received ACK' + data + b'\n')
 
-        print(data)
-
-    except:
-        test += 1
+    except Exception as e:
+        print(e)
         print("didn't receive")
-        send_filename(test)
+        send_filename()
 
 
 def send_packet(data_now, seq_base, seq_end, finish):
+    global total_packets, effective_bytes, total_bytes
     current = seq_base
 
     while current != seq_end:
@@ -50,7 +65,7 @@ def send_packet(data_now, seq_base, seq_end, finish):
                 seq_str = str(current).encode('utf-8')
             packet = seq_str + data_list[data_now]
             packet_list[current] = packet
-            print(packet_list[current])
+            # print(packet_list[current])
             create_list[current] = True
 
             data_now += 1
@@ -58,6 +73,11 @@ def send_packet(data_now, seq_base, seq_end, finish):
             seq_end = current + 1
         if not ack_list[current]:
             sock.sendto(packet_list[current], server_address)
+            log.write(b'Sender: sent PKT' + str(current).encode('utf-8') + b'\n')
+            timer_list[current] = time.time()
+            total_packets = total_packets + 1
+            total_bytes = total_bytes + len(packet_list[current])
+            effective_bytes = effective_bytes + len(packet_list[current])
 
         if current == s - 1:
             current = 0
@@ -71,19 +91,33 @@ def send_packet(data_now, seq_base, seq_end, finish):
 
 
 def receive_data(data_now, seq_base, seq_end, finish):
+    global max_rtt, min_rtt, total_rtt, rtt_count, lost_packets, effective_bytes
     try:
-
         data, server = sock.recvfrom(y)
-
+        log.write(b'Sender: received ACK' + data + b'\n')
         data = data.decode('utf-8')
         ack = int(data)
         ack_list[ack] = True
+
+        print("ACK" + str(ack) + " received")
+        print("Start Time: " + str(timer_list[ack])[:13] + " sec")
+        received = time.time()
+        print("End Time: " + str(received)[:13] + " sec")
+        rtt = received - timer_list[ack] 
+        print("RTT: " + str(rtt)[:6] + " sec\n")
+
+        if max_rtt < rtt:
+            max_rtt = rtt
+        if min_rtt > rtt:
+            min_rtt = rtt
+        total_rtt = total_rtt + rtt
+        rtt_count = rtt_count + 1
+        
         if ack == seq_base and finish and seq_base == seq_end - 1:
-            print(seq_end)
+            # print(seq_end)
             pass
         else:
             if ack == seq_base:
-
                 while ack_list[seq_base]:
 
                     ack_list[seq_base] = False
@@ -102,21 +136,24 @@ def receive_data(data_now, seq_base, seq_end, finish):
             receive_data(data_now, seq_base, seq_end, finish)
 
 
-    except:
-
-        # here is the problem
+    except Exception as e:
+        print(e)
+        # print("test" + str(packet_list))
+        print("PKT" + str(seq_base) + " Request Time Out")
+        lost_packets = lost_packets + 1
+        effective_bytes = effective_bytes - len(packet_list[seq_base])
         if not ack_list[seq_base]:
             send_packet(data_now, seq_base, seq_end, finish)
 
+log = open('client_data/client_log', "wb")
 
 # Create a UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-server_address = ('142.1.46.51', 10000)
+server_address = (hostname, 10000)
+log.write(b'Sender: starting on host ' + hostname.encode('utf-8') + b'\n')
 
 try:
-
-    file = open('client_data/test1.txt', "rb")
+    file = open('client_data/' + filename, "rb")
     body = file.read()
     size = len(body)
     data_start = 0
@@ -132,16 +169,27 @@ try:
         data_end = data_end + y - 2
         packet_amount += 1
     sock.settimeout(timeout)
-    send_filename(test)
+    send_filename()
     seq_base += 1
     seq_end += 1
-    print(len(data_list))
+    # print(len(data_list))
     data_now = send_packet(data_now, seq_base, seq_end, False)
 
 
 
 
 finally:
-    print('closing socket')
     sock.sendto(b'Finished', server_address)
     sock.close()
+    log.write(b'Sender: file transfer completed\n')
+    print("Maximum RTT: " + str(max_rtt*1000)[:4] + " msec")
+    print("Minimum RTT: " + str(min_rtt*1000)[:4]+ " msec")
+    print("Average RTT: " + str(total_rtt*1000/rtt_count)[:4]+ " msec")
+    # print(lost_packets, total_packets)
+    print("Packet loss rate: " + str(lost_packets*100/total_packets)[:5] + "%")
+    log.write(b'Sender: number of effective bytes sent: ' + str(effective_bytes).encode('utf-8') + b' bytes\n')
+    log.write(b'Sender: number of packets sent: ' + str(total_packets).encode('utf-8') + b' packets\n')
+    log.write(b'Sender: number of bytes sent: ' + str(total_bytes).encode('utf-8') + b' bytes\n')
+    log.close()
+
+
