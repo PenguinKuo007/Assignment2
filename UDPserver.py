@@ -1,4 +1,6 @@
 import socket
+import sys
+import time
 import random
 
 # Global variables
@@ -54,15 +56,54 @@ while True:
             seq_end += 1
     else:
 
-        if data.decode('utf-8') == 'Finished':
-            filename_get = False
-            file.close()
-            log.write(b'Receiver: file transfer completed\n')
-            log.write(b'Receiver: number of bytes received: ' + str(total_bytes).encode('utf-8') + b' bytes\n')
-            log.close()
-            break
-        else:
+        try:
+            if data.decode('utf-8') == 'Finished':
+                filename_get = False
+                file.close()
+                log.write(b'Receiver: file transfer completed\n')
+                log.write(b'Receiver: number of bytes received: ' + str(total_bytes).encode('utf-8') + b' bytes\n')
+                log.close()
+                break
+            else:
 
+                log.write(b'Receiver: received PKT' + str(int(data[0:2])).encode('utf-8') + b'\n')
+                loss = random.randint(1, 10)
+
+                if loss >= 5:
+                    if True:
+                        test += 1
+                        seq = data[0:2].decode('utf-8')
+                        seq = int(seq)
+                        seq_str = str(seq)
+
+                        print("Receieved: ACK" + str(seq) + ", Expected: ACK" + str(seq_base))
+                        ack = seq_str.encode('utf-8')
+
+                        body = data[2:]
+                        if seq != seq_base:
+                            buffer[seq] = body
+                            buf_check[seq] = True
+
+                        else:
+
+                            buffer[seq] = body
+                            temp_end = seq_end
+                            buf_check[seq] = True
+                            while (seq_base != temp_end) and buf_check[seq_base]:
+                                file.write(buffer[seq_base])
+                                buf_check[seq_base] = False
+                                if seq_base == s - 1:
+                                    seq_base = 0
+                                else:
+                                    seq_base += 1
+                                if seq_end == s - 1:
+                                    seq_end = 0
+                                else:
+                                    seq_end += 1
+
+                        sock.sendto(ack, address)
+                        log.write(b'Receiver: sent an ACK' + ack + b'\n')
+        except:
             log.write(b'Receiver: received PKT' + str(int(data[0:2])).encode('utf-8') + b'\n')
             loss = random.randint(1, 10)
 

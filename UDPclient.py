@@ -1,10 +1,11 @@
 import socket
+import sys
 import time
-
+import random
 
 # Global variable
 hostname = '142.1.46.51'
-filename = 'test1.txt'
+filename = 'test2.jpg'
 y = 80  # packet size
 n = 4  # window size
 s = n * 2 + 1  # total number of sequence number
