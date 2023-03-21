@@ -1,7 +1,5 @@
 import socket
-import sys
 import time
-import random
 
 # Global variable
 hostname = '142.1.46.51'

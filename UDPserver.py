@@ -1,13 +1,11 @@
 import socket
-import sys
-import time
 import random
 
 # Global variables
 y = 80  # packet size
 n = 4  # window size
 s = n * 2 + 1  # total number of sequence number
-loss_rate = 3  # Determines the loss rate (3 = 30% packets will be lost)
+loss_rate = 4  # Determines the loss rate (3 = 30% packets will be lost)
 total_bytes = 0  # To keep track of total bytes received from Client
 filename_get = False  # flag to check if filename has successfully receive
 
