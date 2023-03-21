@@ -56,7 +56,7 @@ def send_filename():
         print("Filename Request Time Out")
         send_filename()
 
-
+# Helper function to send the packet to server
 def send_packet(data_now, seq_base, seq_end, finish, last_seq):
     # Global variables for keeping track of statistics 
     global total_packets, effective_bytes, total_bytes
@@ -137,11 +137,14 @@ def receive_data(data_now, seq_base, seq_end, finish, last_seq):
         total_rtt = total_rtt + rtt
         rtt_count = rtt_count + 1
 
+        # If last packet is acknowledged then no need to receive data
         if ack == seq_base and finish and seq_base == last_seq:
             pass
+        # If there are still packet not acknowledged yet, then keep receiving data
         else:
+            # If the ack number is the same as base sequence, then move base sequence and end sequence
+            # until the unack sequence
             if ack == seq_base:
-
                 while ack_list[seq_base]:
 
                     if finish and seq_base == last_seq and ack_list[seq_base]:
@@ -164,7 +167,6 @@ def receive_data(data_now, seq_base, seq_end, finish, last_seq):
                 if complete:
                     pass
                 else:
-
                     finish = send_packet(data_now, seq_base, seq_end, False, last_seq)
                     receive_data(finish[2], seq_base, seq_end, finish[0], finish[1])
             else:
@@ -175,10 +177,13 @@ def receive_data(data_now, seq_base, seq_end, finish, last_seq):
         print("PKT" + str(seq_base) + " Request Time Out")
         lost_packets = lost_packets + 1
         effective_bytes = effective_bytes - len(packet_list[seq_base])
+
+        # check if the current base sequence if ack or not, if not then resend the packet
         if not ack_list[seq_base]:
             packet_sent[seq_base] = False
             finish = send_packet(data_now, seq_base, seq_end, finish, last_seq)
             receive_data(finish[2], seq_base, seq_end, finish[0], finish[1])
+        # If ack, then keep receiving ack from server
         else:
             receive_data(data_now, seq_base, seq_end, finish, last_seq)
 
