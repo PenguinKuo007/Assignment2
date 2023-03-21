@@ -2,8 +2,8 @@ import socket
 import random
 
 # Global variables
-y = 50  # packet size
-n = 3  # window size
+y = 80  # packet size
+n = 4  # window size
 s = n * 2 + 1  # total number of sequence number
 
 filename_get = False  # flag to check if filename has successfully receive

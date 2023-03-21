@@ -5,8 +5,8 @@ import time
 # Global variable
 hostname = '142.1.46.51'
 filename = 'test1.txt'
-y = 50  # packet size
-n = 3  # window size
+y = 80  # packet size
+n = 4  # window size
 s = n * 2 + 1  # total number of sequence number
 seq = 0  # trace the current sequence number
 packet_list = [''] * s  # initialize an empty list of for packet
