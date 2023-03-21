@@ -1,7 +1,6 @@
 import socket
-import sys
 import time
-import random
+
 
 # Global variable
 hostname = '142.1.46.51'
@@ -62,6 +61,8 @@ def send_packet(data_now, seq_base, seq_end, finish, last_seq):
         temp_end = last_seq + 1
     while current != temp_end and data_now <= len(data_list) + 1:
 
+        if not create_list[current] and data_now == len(data_list):
+            break
         if not create_list[current] and data_now != len(data_list):
             if current < 10:
                 seq_str = b'0' + str(current).encode('utf-8')
@@ -76,7 +77,6 @@ def send_packet(data_now, seq_base, seq_end, finish, last_seq):
             if data_now == len(data_list):
                 print('here')
                 last_seq = current
-                return [True, last_seq, data_now]
 
         if not ack_list[current] and not packet_sent[current]:
             sock.sendto(packet_list[current], server_address)
@@ -93,7 +93,6 @@ def send_packet(data_now, seq_base, seq_end, finish, last_seq):
             current += 1
 
     if data_now == len(data_list):
-
         return [True, last_seq, data_now]
     else:
         return [False, last_seq, data_now]

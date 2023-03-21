@@ -1,6 +1,4 @@
 import socket
-import sys
-import time
 import random
 
 # Global variables
@@ -58,7 +56,7 @@ while True:
 
         if data.decode('utf-8') == 'Finished':
             filename_get = False
-            file.close
+            file.close()
             log.write(b'Receiver: file transfer completed\n')
             log.write(b'Receiver: number of bytes received: ' + str(total_bytes).encode('utf-8') + b' bytes\n')
             log.close()
